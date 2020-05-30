@@ -29,4 +29,4 @@ def replay():
 for i in range(100):
     replay()
     print("round :", i+1, "done!")
-    countdown(305)
+    countdown(3605)
