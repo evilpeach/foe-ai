@@ -147,6 +147,8 @@ with mss.mss() as sct:
                 last_time = time.time()
                 continue
 
+            print("go to top")
+
             looking_at = 0
             state = "top"
             last_time = time.time()
