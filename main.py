@@ -77,6 +77,20 @@ def reduce_point(points):
     return dst
 
 
+def min_x_plus_y(arr):
+    min_xy = 1000_000_000_000
+    xy = (0.0, 0.0)
+    found = False
+    for (x_, y_) in arr:
+        if x_+y_ < min_xy:
+            found = True
+            min_xy = x_+y_
+            xy = (x_, y_)
+    if found:
+        return xy
+    return None
+
+
 def match(img, template):
     w, h = template.shape[:-1]
     res = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
@@ -106,7 +120,11 @@ with mss.mss() as sct:
             cv2.destroyAllWindows()
             break
 
-        # print("fps: {}".format(1 / (time.time() - last_time)), end='\r', flush=True)
+        print(
+            "state: {}".format(state),
+            end='\r',
+            flush=True
+        )
 
         sct_img = sct.grab(parts[looking_at])
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
@@ -114,6 +132,7 @@ with mss.mss() as sct:
         if state == "idle":
             close_pos = match(img, templates["close"])
             if len(close_pos) > 0:
+                print("close at", close_pos[0])
                 lerp_iter(mouse, close_pos[0], 10)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
@@ -147,8 +166,6 @@ with mss.mss() as sct:
                 last_time = time.time()
                 continue
 
-            print("go to top")
-
             looking_at = 0
             state = "top"
             last_time = time.time()
@@ -169,31 +186,30 @@ with mss.mss() as sct:
                     continue
 
             target = match(img, templates["ftarget"])
-            print("ftarget", target)
+            # print("ftarget", target)
             if len(target) > 0:
                 lerp_iter(mouse, add_offset(target[0], 0, 20), 20)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                print("waiting for ftarget modal")
+                # print("waiting for ftarget modal")
                 time.sleep(3)
                 looking_at = 1
                 state = "looking_for_ftarget_2"
                 last_time = time.time()
                 continue
-
-            looking_at = 1
-            state = "idle"
-            last_time = time.time()
-            continue
+            else:
+                looking_at = 1
+                state = "idle"
+                last_time = time.time()
+                continue
 
         elif state == "looking_for_ftarget_2":
-            print("looking for ftarget 2")
+            # print("looking for ftarget 2")
             target2 = match(img, templates["ftarget2"])
             if len(target2) == 0:
                 looking_at = 1
                 state = "idle"
                 last_time = time.time()
-                print("11111")
                 continue
             lerp_iter(mouse, add_offset(target2[0], -45, 15), 30)
             mouse.press(Button.left)
@@ -201,7 +217,6 @@ with mss.mss() as sct:
             looking_at = 1
             state = "idle"
             last_time = time.time()
-            print("2222")
             continue
 
         elif state == "collect_target":
@@ -252,18 +267,15 @@ with mss.mss() as sct:
             continue
 
         elif state == "select_produce":
-            min_xy = 1000_000_000_000
-            xy = (0.0, 0.0)
-            for (x_, y_) in choices:
-                if x_+y_ < min_xy:
-                    min_xy = x_+y_
-                    xy = (x_, y_)
-            if min_xy == 1000_000_000_000:
+            xy = min_x_plus_y(choices)
+
+            if xy is None:
                 choices = []
                 waiting_acc = 0
                 last_time = time.time()
                 state = "awake"
                 continue
+
             print("select", xy)
 
             lerp_iter(mouse, xy, 25)
