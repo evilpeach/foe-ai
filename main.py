@@ -6,16 +6,16 @@ import numpy
 from pynput.mouse import Button, Controller
 
 templates = {
-    "box": cv2.imread('idle/t_box.png'),
-    "close": cv2.imread('idle/t_close.png'),
-    "coin": cv2.imread('idle/t_coin.png'),
-    "work": cv2.imread('idle/t_resource.png'),
-    "sleep": cv2.imread('idle/t_sleep.png'),
-    "sword": cv2.imread('idle/t_sword.png'),
-    "produce": cv2.imread('produce/template_p_2.png'),
-    "forge": cv2.imread('top/t_forge.png'),
-    "ftarget": cv2.imread('top/ftarget.png'),
-    "ftarget2": cv2.imread('top/ftarget_2.png'),
+    "box": cv2.imread("idle/t_box.png"),
+    "close": cv2.imread("idle/t_close.png"),
+    "coin": cv2.imread("idle/t_coin.png"),
+    "work": cv2.imread("idle/t_resource.png"),
+    "sleep": cv2.imread("idle/t_sleep.png"),
+    "sword": cv2.imread("idle/t_sword.png"),
+    "produce": cv2.imread("produce/template_p_2.png"),
+    "forge": cv2.imread("top/t_forge.png"),
+    "ftarget": cv2.imread("top/ftarget.png"),
+    "ftarget2": cv2.imread("top/ftarget_2.png"),
 }
 
 
@@ -27,15 +27,17 @@ def add_offset(xy, x_offset=0, y_offset=50):
 def lerp(xy1, xy2):
     (x1, y1) = xy1
     (x2, y2) = xy2
-    return (x1*0.1 + x2*0.9, y1*0.1 + y1*0.9)
+    return (x1 * 0.1 + x2 * 0.9, y1 * 0.1 + y1 * 0.9)
 
 
 def lerp_iter(mouse, xy, round=50):
     (x1, y1) = mouse.position
     (x2, y2) = xy
     for i in range(0, round):
-        mouse.position = (x2*(i+1)/round + (round-i-1)*x1/round,
-                          y2*(i+1)/round + (round-i-1)*y1/round)
+        mouse.position = (
+            x2 * (i + 1) / round + (round - i - 1) * x1 / round,
+            y2 * (i + 1) / round + (round - i - 1) * y1 / round,
+        )
         time.sleep(0.01)
     mouse.position = xy
 
@@ -43,15 +45,15 @@ def lerp_iter(mouse, xy, round=50):
 def dis_2(p1, p2):
     (x1, y1) = p1
     (x2, y2) = p2
-    return (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)
+    return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
 
 
 def avg(arr):
-    (sx, sy) = (0., 0.)
+    (sx, sy) = (0.0, 0.0)
     for (x, y) in arr:
         sx += x
         sy += y
-    return (sx/len(arr), sy/len(arr))
+    return (sx / len(arr), sy / len(arr))
 
 
 def reduce_point(points):
@@ -82,9 +84,9 @@ def min_x_plus_y(arr):
     xy = (0.0, 0.0)
     found = False
     for (x_, y_) in arr:
-        if x_+y_ < min_xy:
+        if x_ + y_ < min_xy:
             found = True
-            min_xy = x_+y_
+            min_xy = x_ + y_
             xy = (x_, y_)
     if found:
         return xy
@@ -94,14 +96,16 @@ def min_x_plus_y(arr):
 def match(img, template):
     w, h = template.shape[:-1]
     res = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
-    threshold = .75
+    threshold = 0.75
     loc = np.where(res >= threshold)
-    return reduce_point([(pt[0]/2.+w/4., pt[1]/2.+h/4.) for pt in zip(*loc[::-1])])
+    return reduce_point(
+        [(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])]
+    )
 
 
 with mss.mss() as sct:
     top_part = {"top": 105, "left": 540, "width": 145, "height": 65}
-    mid_part = {"top": 0, "left": 0, "width": 1144, "height": 870}
+    mid_part = {"top": 0, "left": 0, "width": 1120, "height": 870}
     parts = [top_part, mid_part]
 
     looking_at = 1
@@ -120,11 +124,7 @@ with mss.mss() as sct:
             cv2.destroyAllWindows()
             break
 
-        print(
-            "state: {}".format(state),
-            end='\r',
-            flush=True
-        )
+        print("state: {}".format(state), end="\r", flush=True)
 
         sct_img = sct.grab(parts[looking_at])
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])

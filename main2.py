@@ -1,0 +1,323 @@
+import time
+import cv2
+import numpy as np
+import mss
+import numpy
+import os
+import sha3
+import keyboard
+from pynput.mouse import Button, Controller
+
+templates = {
+    "id_input": cv2.imread("user/id_input.png"),
+    "start": cv2.imread("user/start.png"),
+    "channel": cv2.imread("user/channel.png"),
+    "close": cv2.imread("idle/t_close.png"),
+    "house": cv2.imread("user/house.png"),
+    "expand": cv2.imread("user/expand.png"),
+    "collapse": cv2.imread("user/collapse.png"),
+    "previous": cv2.imread("user/previous.png"),
+    "ecore": cv2.imread("user/ecore.png"),
+    "target_gb": cv2.imread("user/target_gb.png"),
+    "find_fork": cv2.imread("user/find_fork.png"),
+}
+
+
+def add_offset(xy, x_offset=0, y_offset=50):
+    (x, y) = xy
+    return (x + x_offset, y + y_offset)
+
+
+def lerp(xy1, xy2):
+    (x1, y1) = xy1
+    (x2, y2) = xy2
+    return (x1 * 0.1 + x2 * 0.9, y1 * 0.1 + y1 * 0.9)
+
+
+def lerp_iter(mouse, xy, round=50):
+    (x1, y1) = mouse.position
+    (x2, y2) = xy
+    for i in range(0, round):
+        mouse.position = (
+            x2 * (i + 1) / round + (round - i - 1) * x1 / round,
+            y2 * (i + 1) / round + (round - i - 1) * y1 / round,
+        )
+        time.sleep(0.01)
+    mouse.position = xy
+
+
+def dis_2(p1, p2):
+    (x1, y1) = p1
+    (x2, y2) = p2
+    return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+
+
+def avg(arr):
+    (sx, sy) = (0.0, 0.0)
+    for (x, y) in arr:
+        sx += x
+        sy += y
+    return (sx / len(arr), sy / len(arr))
+
+
+def reduce_point(points):
+    if len(points) == 0:
+        return []
+    src = points[:]
+    dst = []
+    while len(src) > 0:
+        a = src[0]
+        src = src[1:][:]
+        tbr = []
+        for i in range(0, len(src)):
+            if dis_2(a, src[i]) < 500:
+                tbr.append(src[i])
+
+        if len(tbr) > 0:
+            dst.append(avg(tbr + [a]))
+            for x in tbr:
+                src.remove(x)
+        else:
+            dst.append(a)
+
+    return dst
+
+
+def min_x_plus_y(arr):
+    min_xy = 1000_000_000_000
+    xy = (0.0, 0.0)
+    found = False
+    for (x_, y_) in arr:
+        if x_ + y_ < min_xy:
+            found = True
+            min_xy = x_ + y_
+            xy = (x_, y_)
+    if found:
+        return xy
+    return None
+
+
+def match(img, template):
+    w, h = template.shape[:-1]
+    res = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.75
+    loc = np.where(res >= threshold)
+    return reduce_point(
+        [(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])]
+    )
+
+
+def get_password(username):
+    k = sha3.keccak_256()
+    k.update(bytes(username, "utf-8"))
+    return k.hexdigest()
+
+
+def open_browser():
+    os.system(
+        '''open -na "Google Chrome" --args --incognito "https://th.forgeofempires.com/page"'''
+    )
+
+
+def read_file():
+    arr = []
+    f = open("./user/test", "r")
+    for x in f.readlines():
+        arr += [x.split(",")]
+    f.close()
+    return arr
+
+
+def find_active_user(arr):
+    for x in arr:
+        if time.time() - int(x[1]) > 18000:
+            return x
+    return None
+
+
+def update_users(users, updated_user):
+    idx = -1
+    for i, user in enumerate(users):
+        if updated_user[0] == user[0]:
+            idx = i
+            break
+    if idx == -1:
+        raise ValueError("user not found")
+
+    users[idx][1] = int(time.time())
+
+
+def write_file(new_users):
+    f = open("./user/test", "w")
+    for user in new_users:
+        f.write(str(user[0]) + "," + str(user[1]))
+
+
+with mss.mss() as sct:
+    mid_part = {"top": 0, "left": 0, "width": 1300, "height": 870}
+
+    all_users = []
+    active_user = None
+    mouse = Controller()
+    state = "init"
+    last_time = time.time()
+
+    while "Screen capturing":
+        # Press "q" to quit
+        if cv2.waitKey(25) & 0xFF == ord("q"):
+            cv2.destroyAllWindows()
+            break
+
+        print("state: {}".format(state), end="\r", flush=True)
+
+        sct_img = sct.grab(mid_part)
+        img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
+
+        if state == "init":
+            all_users = read_file()
+            active_user = find_active_user(all_users)
+            if active_user == None:
+                time.sleep(10)
+                continue
+            else:
+                open_browser()
+                state = "login"
+                continue
+
+        elif state == "login":
+            id_inputs = match(img, templates["id_input"])
+            if len(id_inputs) > 0:
+                # input id
+                print("input at", id_inputs[0])
+                lerp_iter(mouse, id_inputs[0], 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                keyboard.write(active_user[0])
+
+                # input password
+                time.sleep(2)
+                lerp_iter(mouse, add_offset(id_inputs[0], 0, 50), 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                keyboard.write(get_password(active_user[0]))
+
+                # click login
+                time.sleep(2)
+                lerp_iter(mouse, add_offset(id_inputs[0], 50, 135), 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+
+                # move mouse away
+                time.sleep(1)
+                lerp_iter(mouse, add_offset(id_inputs[0], 200, 50), 10)
+                state = "start"
+                continue
+
+        elif state == "start":
+            starts = match(img, templates["start"])
+            if len(starts) > 0:
+                # input id
+                print("input at", starts[0])
+                lerp_iter(mouse, starts[0], 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                keyboard.write(active_user[0])
+                state = "channel"
+                continue
+
+        elif state == "channel":
+            channels = match(img, templates["channel"])
+            if len(channels) > 0:
+                # input id
+                print("input at", channels[0])
+                lerp_iter(mouse, channels[0], 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                keyboard.write(active_user[0])
+                state = "entry_idle"
+                continue
+
+        elif state == "entry_idle":
+            time.sleep(5)
+            close_pos = match(img, templates["close"])
+            if len(close_pos) > 0:
+                print("close at", close_pos[0])
+                lerp_iter(mouse, close_pos[0], 1)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(1)
+                continue
+
+            houses = match(img, templates["house"])
+            if len(houses) > 0:
+                print("house at", houses[0])
+                time.sleep(1)
+                state = "target_user"
+                continue
+
+        elif state == "target_user":
+            ecores = match(img, templates["ecore"])
+            if len(ecores) > 0:
+                print("ecore at", ecores[0])
+                lerp_iter(mouse, add_offset(ecores[0], 80, 20), 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(1)
+                state = "choose_gb"
+                continue
+
+            expands = match(img, templates["expand"])
+            if len(expands) > 0:
+                print("expand at", expands[0])
+                mouse.position = expands[0]
+                time.sleep(0.5)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(1)
+                continue
+
+            previous = match(img, templates["previous"])
+            if len(previous) > 0:
+                print("previous at", previous[0])
+                mouse.position = add_offset(previous[0], 50, 20)
+                time.sleep(0.5)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(1)
+                continue
+
+        elif state == "choose_gb":
+            target_gbs = match(img, templates["target_gb"])
+            if len(target_gbs) > 0:
+                print("target_gb at", target_gbs[0])
+                lerp_iter(mouse, add_offset(target_gbs[0], 600, -10), 10)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(1)
+                state = "find_fork"
+                continue
+
+        elif state == "find_fork":
+            find_forks = match(img, templates["find_fork"])
+            if len(find_forks) > 0:
+                print("find_forks at", find_forks[0])
+                lerp_iter(mouse, add_offset(find_forks[0], -30, 10), 10)
+                # mouse.press(Button.left)
+                # mouse.release(Button.left)
+                time.sleep(1)
+                update_users(all_users, active_user)
+                write_file(all_users)
+                state = "kill"
+                continue
+
+        elif state == "kill":
+            os.system("killall -9 'Google Chrome'")
+            time.sleep(2)
+            state = "init"
+            continue
+
+        elif state == "sleep":
+            time.sleep(5)
+            # state == "kill"
+            continue
+
