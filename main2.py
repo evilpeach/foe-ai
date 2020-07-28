@@ -123,7 +123,9 @@ def read_file():
     arr = []
     f = open("./user/test", "r")
     for x in f.readlines():
-        arr += [x.split(",")]
+        y, z = x.split(",")
+        if y != "":
+            arr += [[y, z.rstrip()]]
     f.close()
     return arr
 
@@ -150,7 +152,7 @@ def update_users(users, updated_user):
 def write_file(new_users):
     f = open("./user/test", "w")
     for user in new_users:
-        f.write(str(user[0]) + "," + str(user[1]))
+        f.write(str(user[0]) + "," + str(user[1]) + "\n")
 
 
 with mss.mss() as sct:
@@ -160,7 +162,6 @@ with mss.mss() as sct:
     active_user = None
     mouse = Controller()
     state = "init"
-    last_time = time.time()
 
     while "Screen capturing":
         # Press "q" to quit
@@ -238,7 +239,7 @@ with mss.mss() as sct:
                 continue
 
         elif state == "entry_idle":
-            time.sleep(5)
+            time.sleep(2)
             close_pos = match(img, templates["close"])
             if len(close_pos) > 0:
                 print("close at", close_pos[0])
@@ -276,15 +277,15 @@ with mss.mss() as sct:
                 time.sleep(1)
                 continue
 
-            previous = match(img, templates["previous"])
-            if len(previous) > 0:
-                print("previous at", previous[0])
-                mouse.position = add_offset(previous[0], 50, 20)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(1)
-                continue
+            # previous = match(img, templates["previous"])
+            # if len(previous) > 0:
+            #     print("previous at", previous[0])
+            #     mouse.position = add_offset(previous[0], 50, 20)
+            #     time.sleep(0.5)
+            #     mouse.press(Button.left)
+            #     mouse.release(Button.left)
+            #     time.sleep(1)
+            #     continue
 
         elif state == "choose_gb":
             target_gbs = match(img, templates["target_gb"])
