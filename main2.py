@@ -97,10 +97,9 @@ def min_x_plus_y(arr):
     return None
 
 
-def match(img, template):
+def match(img, template, threshold=0.9):
     w, h = template.shape[:-1]
     res = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.75
     loc = np.where(res >= threshold)
     return reduce_point(
         [(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])]
@@ -114,9 +113,10 @@ def get_password(username):
 
 
 def open_browser():
-    os.system(
-        '''open -na "Google Chrome" --args --incognito "https://th.forgeofempires.com/page"'''
-    )
+    # os.system(
+    #     '''open -na "Google Chrome" --args --incognito "https://th.forgeofempires.com/page"'''
+    # )
+    os.system('''open -a Firefox --args -private-window "https://th.forgeofempires.com/page"''')
 
 
 def read_file():
@@ -156,7 +156,7 @@ def write_file(new_users):
 
 
 with mss.mss() as sct:
-    mid_part = {"top": 0, "left": 0, "width": 1300, "height": 870}
+    mid_part = {"top": 0, "left": 0, "width": 1300, "height": 900}
 
     all_users = []
     active_user = None
@@ -181,6 +181,7 @@ with mss.mss() as sct:
                 time.sleep(10)
                 continue
             else:
+                print("user is", active_user)
                 open_browser()
                 state = "login"
                 continue
@@ -218,11 +219,16 @@ with mss.mss() as sct:
             starts = match(img, templates["start"])
             if len(starts) > 0:
                 # input id
-                print("input at", starts[0])
+                print("start btn at", starts[0])
+                time.sleep(0.5)
                 lerp_iter(mouse, starts[0], 10)
+                time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                keyboard.write(active_user[0])
+                time.sleep(0.5)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(0.5)
                 state = "channel"
                 continue
 
@@ -230,40 +236,41 @@ with mss.mss() as sct:
             channels = match(img, templates["channel"])
             if len(channels) > 0:
                 # input id
-                print("input at", channels[0])
+                print("click channel at", channels[0])
                 lerp_iter(mouse, channels[0], 10)
+                time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                keyboard.write(active_user[0])
-                state = "entry_idle"
-                continue
-
-        elif state == "entry_idle":
-            time.sleep(2)
-            close_pos = match(img, templates["close"])
-            if len(close_pos) > 0:
-                print("close at", close_pos[0])
-                lerp_iter(mouse, close_pos[0], 1)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(1)
-                continue
-
-            houses = match(img, templates["house"])
-            if len(houses) > 0:
-                print("house at", houses[0])
-                time.sleep(1)
+                time.sleep(0.5)
                 state = "target_user"
                 continue
 
         elif state == "target_user":
+            close_pos = match(img, templates["close"])
+            if len(close_pos) > 0:
+                target_gbs = match(img, templates["target_gb"], 0.75)
+                print("close", target_gbs)
+                if len(target_gbs) > 0:
+                    pass
+                else:
+                    print("close at", close_pos[0])
+                    lerp_iter(mouse, close_pos[0], 1)
+                    time.sleep(0.5)
+                    mouse.press(Button.left)
+                    mouse.release(Button.left)
+                    time.sleep(0.5)
+                    continue
+
             ecores = match(img, templates["ecore"])
             if len(ecores) > 0:
                 print("ecore at", ecores[0])
-                lerp_iter(mouse, add_offset(ecores[0], 80, 20), 10)
+                lerp_iter(mouse, add_offset(ecores[0], 80, 20), 3)
+                time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                time.sleep(1)
+                time.sleep(0.5)
+                lerp_iter(mouse, add_offset(ecores[0], 0, 20), 3)
+                time.sleep(2)
                 state = "choose_gb"
                 continue
 
@@ -274,45 +281,55 @@ with mss.mss() as sct:
                 time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                time.sleep(1)
+                time.sleep(0.5)
+                lerp_iter(mouse, add_offset(expands[0], 0, 30), 3)
                 continue
 
-            # previous = match(img, templates["previous"])
-            # if len(previous) > 0:
-            #     print("previous at", previous[0])
-            #     mouse.position = add_offset(previous[0], 50, 20)
-            #     time.sleep(0.5)
-            #     mouse.press(Button.left)
-            #     mouse.release(Button.left)
-            #     time.sleep(1)
-            #     continue
-
-        elif state == "choose_gb":
-            target_gbs = match(img, templates["target_gb"])
-            if len(target_gbs) > 0:
-                print("target_gb at", target_gbs[0])
-                lerp_iter(mouse, add_offset(target_gbs[0], 600, -10), 10)
+            previous = match(img, templates["previous"])
+            if len(previous) > 0:
+                print("previous at", previous[0])
+                mouse.position = add_offset(previous[0], 0, 0)
+                time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                time.sleep(1)
+                time.sleep(0.5)
+                lerp_iter(mouse, add_offset(previous[0], 0, -200), 10)
+                time.sleep(0.5)
+                continue
+
+        elif state == "choose_gb":
+            target_gbs = match(img, templates["target_gb"], 0.75)
+            print(target_gbs)
+            if len(target_gbs) > 0:
+                print("target_gb at", target_gbs[0])
+                lerp_iter(mouse, add_offset(target_gbs[0], 600, -10), 5)
+                time.sleep(0.5)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(0.5)
+                lerp_iter(mouse, add_offset(target_gbs[0], 0, 30), 5)
+                time.sleep(0.5)
                 state = "find_fork"
                 continue
+            else:
+                state = "target_user"
 
         elif state == "find_fork":
             find_forks = match(img, templates["find_fork"])
             if len(find_forks) > 0:
                 print("find_forks at", find_forks[0])
                 lerp_iter(mouse, add_offset(find_forks[0], -30, 10), 10)
-                # mouse.press(Button.left)
-                # mouse.release(Button.left)
-                time.sleep(1)
+                mouse.press(Button.left)
+                mouse.release(Button.left)
+                time.sleep(3)
                 update_users(all_users, active_user)
                 write_file(all_users)
                 state = "kill"
                 continue
 
         elif state == "kill":
-            os.system("killall -9 'Google Chrome'")
+            # os.system("killall -9 'Google Chrome'")
+            os.system("pkill -f firefox")
             time.sleep(2)
             state = "init"
             continue
