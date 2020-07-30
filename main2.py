@@ -116,7 +116,9 @@ def open_browser():
     # os.system(
     #     '''open -na "Google Chrome" --args --incognito "https://th.forgeofempires.com/page"'''
     # )
-    os.system('''open -a Firefox --args -private-window "https://th.forgeofempires.com/page"''')
+    os.system(
+        '''open -a Firefox --args -private-window "https://th.forgeofempires.com/page"'''
+    )
 
 
 def read_file():
@@ -163,6 +165,9 @@ with mss.mss() as sct:
     mouse = Controller()
     state = "init"
 
+    last_state = ""
+    last_changed = time.time()
+
     while "Screen capturing":
         # Press "q" to quit
         if cv2.waitKey(25) & 0xFF == ord("q"):
@@ -173,6 +178,15 @@ with mss.mss() as sct:
 
         sct_img = sct.grab(mid_part)
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
+
+        # check timeout
+        if last_state == state and state != "init":
+            if int(time.time()) - last_changed > 30:
+                print("timeout!!!")
+                state = "kill"
+        else:
+            last_state = state
+            last_changed = int(time.time())
 
         if state == "init":
             all_users = read_file()
@@ -332,10 +346,5 @@ with mss.mss() as sct:
             os.system("pkill -f firefox")
             time.sleep(2)
             state = "init"
-            continue
-
-        elif state == "sleep":
-            time.sleep(5)
-            # state == "kill"
             continue
 
