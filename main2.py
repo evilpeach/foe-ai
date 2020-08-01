@@ -17,7 +17,8 @@ templates = {
     "expand": cv2.imread("user/expand.png"),
     "collapse": cv2.imread("user/collapse.png"),
     "previous": cv2.imread("user/previous.png"),
-    "ecore": cv2.imread("user/ecore.png"),
+    "ecore": cv2.imread("user/mewmo.png"),
+    # "ecore": cv2.imread("user/ecore.png"),
     "target_gb": cv2.imread("user/target_gb.png"),
     "find_fork": cv2.imread("user/find_fork.png"),
 }
@@ -134,7 +135,7 @@ def read_file():
 
 def find_active_user(arr):
     for x in arr:
-        if time.time() - int(x[1]) > 18000:
+        if time.time() - int(x[1]) > 3600:
             return x
     return None
 
@@ -181,7 +182,7 @@ with mss.mss() as sct:
 
         # check timeout
         if last_state == state and state != "init":
-            if int(time.time()) - last_changed > 30:
+            if int(time.time()) - last_changed > 60:
                 print("timeout!!!")
                 state = "kill"
         else:
