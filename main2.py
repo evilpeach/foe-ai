@@ -17,9 +17,17 @@ templates = {
     "expand": cv2.imread("user/expand.png"),
     "collapse": cv2.imread("user/collapse.png"),
     "previous": cv2.imread("user/previous.png"),
-    "ecore": cv2.imread("user/mewmo.png"),
-    # "ecore": cv2.imread("user/ecore.png"),
-    "target_gb": cv2.imread("user/target_gb.png"),
+    # "ecore": cv2.imread("user/mewmo.png"),
+    "ecore": cv2.imread("user/ecore.png"),
+    # "ecore": cv2.imread("user/archa.png"),
+    # "ecore": cv2.imread("user/kondee.png"),
+    # "gb": cv2.imread("user/confuse.png"),
+    # "gb": cv2.imread("user/alex.png"),
+    # "gb": cv2.imread("user/alcatraz.png"),
+    # "gb": cv2.imread("user/aachen.png"),
+    "gb": cv2.imread("user/chateau.png"),
+    # "gb": cv2.imread("user/cape.png"),
+    # "gb": cv2.imread("user/dom.png"),
     "find_fork": cv2.imread("user/find_fork.png"),
 }
 
@@ -263,7 +271,7 @@ with mss.mss() as sct:
         elif state == "target_user":
             close_pos = match(img, templates["close"])
             if len(close_pos) > 0:
-                target_gbs = match(img, templates["target_gb"], 0.75)
+                target_gbs = match(img, templates["gb"], 0.75)
                 print("close", target_gbs)
                 if len(target_gbs) > 0:
                     pass
@@ -313,11 +321,11 @@ with mss.mss() as sct:
                 continue
 
         elif state == "choose_gb":
-            target_gbs = match(img, templates["target_gb"], 0.75)
+            target_gbs = match(img, templates["gb"], 0.75)
             print(target_gbs)
             if len(target_gbs) > 0:
                 print("target_gb at", target_gbs[0])
-                lerp_iter(mouse, add_offset(target_gbs[0], 600, -10), 5)
+                lerp_iter(mouse, add_offset(target_gbs[0], 600, -20), 5)
                 time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
