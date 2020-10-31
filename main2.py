@@ -18,18 +18,18 @@ templates = {
     "collapse": cv2.imread("user/collapse.png"),
     "previous": cv2.imread("user/previous.png"),
     # "user": cv2.imread("user/mewmo.png"),
-    "user": cv2.imread("user/momo.png"),
-    # "user": cv2.imread("user/ecore.png"),
+    # "user": cv2.imread("user/momo.png"),
+    "user": cv2.imread("user/ecore.png"),
     # "user": cv2.imread("user/archa.png"),
     # "user": cv2.imread("user/kondee.png"),
     # "gb": cv2.imread("user/confuse.png"),
     # "gb": cv2.imread("user/alex.png"),
-    # "gb": cv2.imread("user/alcatraz.png"),
+    "gb": cv2.imread("user/alcatraz.png"),
     # "gb": cv2.imread("user/aachen.png"),
     # "gb": cv2.imread("user/chateau.png"),
     # "gb": cv2.imread("user/cape.png"),
     # "gb": cv2.imread("user/castel.png"),
-    "gb": cv2.imread("user/himeji.png"),
+    # "gb": cv2.imread("user/himeji.png"),
     # "gb": cv2.imread("user/dom.png"),
     "find_fork": cv2.imread("user/find_fork.png"),
 }
@@ -291,25 +291,25 @@ with mss.mss() as sct:
             if len(users) > 0:
                 print("user at", users[0])
                 # click hotel icon
-                lerp_iter(mouse, add_offset(users[0], 75, 50), 3)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
-                lerp_iter(mouse, add_offset(users[0], 0, 20), 3)
+                # lerp_iter(mouse, add_offset(users[0], 75, 50), 3)
+                # time.sleep(0.5)
+                # mouse.press(Button.left)
+                # mouse.release(Button.left)
+                # time.sleep(0.5)
+                # lerp_iter(mouse, add_offset(users[0], 0, 20), 3)
                 time.sleep(2)
 
                 # click support
-                lerp_iter(mouse, add_offset(users[0], 40, 70), 3)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
-                lerp_iter(mouse, add_offset(users[0], 0, 20), 3)
-                time.sleep(2)
+                # lerp_iter(mouse, add_offset(users[0], 40, 70), 3)
+                # time.sleep(0.5)
+                # mouse.press(Button.left)
+                # mouse.release(Button.left)
+                # time.sleep(0.5)
+                # lerp_iter(mouse, add_offset(users[0], 0, 20), 3)
+                # time.sleep(2)
 
                 # click gb icon
-                lerp_iter(mouse, add_offset(users[0], 80, 20), 3)
+                lerp_iter(mouse, add_offset(users[0], 70, 20), 3)
                 time.sleep(0.5)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
