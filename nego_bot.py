@@ -14,6 +14,7 @@ templates = {
     "correct": cv2.imread("nego/correct.png"),
     "incorrect": cv2.imread("nego/incorrect.png"),
     "wrong-person": cv2.imread("nego/wrong-person.png"),
+    "topup": cv2.imread("nego/topup.png"),
 }
 
 
@@ -116,6 +117,15 @@ with mss.mss() as sct:
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
         print("current state: ", state)
 
+        id_topups = match(img, templates["topup"])
+        if len(id_topups) > 0:
+            lerp_iter(mouse, id_topups[0], 1)
+            time.sleep(0.5)
+            mouse.press(Button.left)
+            mouse.release(Button.left)
+            time.sleep(0.5)
+            continue
+
         if state == "init":
             id_negos = match(img, templates["nego"])
             if len(id_negos) > 0:
@@ -216,6 +226,7 @@ with mss.mss() as sct:
                 continue
 
         elif state == "update_possible_answers":
+            sct.shot(output=str(aaa) + "update.png")
             id_corrects = [(*xy, "correct") for xy in match(img, templates["correct"])]
             id_incorrects = [(*xy, "incorrect") for xy in match(img, templates["incorrect"])]
             id_wrong_persons = [(*xy, "wrong-person") for xy in match(img, templates["wrong-person"])]
@@ -252,6 +263,7 @@ with mss.mss() as sct:
                         for a in possible_answer:
                             if a in wrong_answer_ids:
                                 temp.append(a)
+                        print("temp", temp)
                         possible_answer = temp
                 state = "play"
                 continue
