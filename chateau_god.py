@@ -81,7 +81,7 @@ def match(img, template, threshold=0.9):
 
 
 with mss.mss() as sct:
-    scope = {"top": 140, "left": 0, "width": 690, "height": 580}
+    scope = {"top": 140, "left": 0, "width": 800, "height": 800}
     mouse = Controller()
 
     while "Screen capturing":
@@ -98,21 +98,21 @@ with mss.mss() as sct:
                 lerp_iter(mouse, add_offset(bag, 0, 130), 10)
                 mouse.press(Button.left)
                 mouse.release(Button.left)
-                time.sleep(0.3)
+                time.sleep(0.5)
 
         elif len(collects) > 0:
             print("found collect", collects)
             lerp_iter(mouse, add_offset(collects[0], 0, 120), 10)
             mouse.press(Button.left)
             mouse.release(Button.left)
-            time.sleep(0.3)
+            time.sleep(0.5)
 
         elif len(cancels) > 0:
             print("found cancel", cancels)
             lerp_iter(mouse, add_offset(cancels[0], 0, 120), 10)
             mouse.press(Button.left)
             mouse.release(Button.left)
-            time.sleep(1.3)
+            time.sleep(1.8)
         else:
             print("finding...")
             time.sleep(0.7)

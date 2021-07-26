@@ -19,14 +19,14 @@ templates = {
     "previous": cv2.imread("user/previous.png"),
     # "user": cv2.imread("user/mewmo.png"),
     # "user": cv2.imread("user/momo.png"),
-    "user": cv2.imread("user/ecore.png"),
-    # "user": cv2.imread("user/archa.png"),
+    # "user": cv2.imread("user/ecore.png"),
+    "user": cv2.imread("user/archa.png"),
     # "user": cv2.imread("user/kondee.png"),
     # "gb": cv2.imread("user/confuse.png"),
     # "gb": cv2.imread("user/alex.png"),
-    "gb": cv2.imread("user/alcatraz.png"),
+    # "gb": cv2.imread("user/alcatraz.png"),
     # "gb": cv2.imread("user/aachen.png"),
-    # "gb": cv2.imread("user/chateau.png"),
+    "gb": cv2.imread("user/chateau.png"),
     # "gb": cv2.imread("user/cape.png"),
     # "gb": cv2.imread("user/castel.png"),
     # "gb": cv2.imread("user/himeji.png"),
@@ -170,7 +170,7 @@ def write_file(new_users):
 
 
 with mss.mss() as sct:
-    mid_part = {"top": 0, "left": 0, "width": 1300, "height": 900}
+    mid_part = {"top": 0, "left": 0, "width": 1700, "height": 1200}
 
     all_users = []
     active_user = None
@@ -297,7 +297,7 @@ with mss.mss() as sct:
                 # mouse.release(Button.left)
                 # time.sleep(0.5)
                 # lerp_iter(mouse, add_offset(users[0], 0, 20), 3)
-                time.sleep(2)
+                # time.sleep(2)
 
                 # click support
                 # lerp_iter(mouse, add_offset(users[0], 40, 70), 3)
