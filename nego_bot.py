@@ -11,6 +11,7 @@ templates = {
     "choose": cv2.imread("nego/choose.png"),
     "answer": cv2.imread("nego/answer2.png"),
     "send": cv2.imread("nego/send.png"),
+    "correct-sign": cv2.imread("nego/correct-sign.png"),
     "correct": cv2.imread("nego/correct.png"),
     "incorrect": cv2.imread("nego/incorrect.png"),
     "wrong-person": cv2.imread("nego/wrong-person.png"),
@@ -222,6 +223,14 @@ with mss.mss() as sct:
                 mouse.press(Button.left)
                 mouse.release(Button.left)
                 time.sleep(0.5)
+                state = "pending_for_update"
+                continue
+
+        elif state == "pending_for_update":
+            sct.shot(output=str(aaa) + "pending_update.png")
+            id_chooses = match(img, templates["choose"])
+            id_correct_signs = match(img, templates["correct-sign"])
+            if len(id_chooses) + len(id_correct_signs) >= 5:
                 state = "update_possible_answers"
                 continue
 
@@ -265,6 +274,7 @@ with mss.mss() as sct:
                                 temp.append(a)
                         print("temp", temp)
                         possible_answer = temp
+                print("possible answer2", possible_answers)
                 state = "play"
                 continue
             else:
