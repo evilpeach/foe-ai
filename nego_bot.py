@@ -7,7 +7,10 @@ import random
 from pynput.mouse import Button, Controller
 
 templates = {
+    "arrow": cv2.imread("nego/arrow.png"),
+    "get-reward": cv2.imread("nego/get-reward.png"),
     "nego": cv2.imread("nego/start.png"),
+    "nego2": cv2.imread("nego/start2.png"),
     "choose": cv2.imread("nego/choose.png"),
     "answer": cv2.imread("nego/answer2.png"),
     "send": cv2.imread("nego/send.png"),
@@ -16,6 +19,12 @@ templates = {
     "incorrect": cv2.imread("nego/incorrect.png"),
     "wrong-person": cv2.imread("nego/wrong-person.png"),
     "topup": cv2.imread("nego/topup.png"),
+    "success": cv2.imread("nego/success.png"),
+    "check-incompleted": cv2.imread("nego/check-incompleted.png"),
+    "buy-attempt": cv2.imread("nego/buy-attempt.png"),
+    "medal": cv2.imread("nego/medal.png"),
+    "next-chapter": cv2.imread("nego/next-chapter.png"),
+    "cancel": cv2.imread("nego/cancel.png"),
 }
 
 
@@ -100,10 +109,26 @@ def match(img, template, threshold=0.9):
     return reduce_point([(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])])
 
 
+def get_scope(state):
+    if state == "init":
+        return {"top": 0, "left": 0, "width": 1700, "height": 1000}
+    else:
+        return {"top": 360, "left": 480, "width": 1330 - 480, "height": 930 - 360}
+
+
+def click_at(pos, state, mouse):
+    offset = get_scope(state)
+    lerp_iter(mouse, add_offset(pos, offset["left"], offset["top"]), 1)
+    time.sleep(0.1)
+    mouse.press(Button.left)
+    time.sleep(0.1)
+    mouse.release(Button.left)
+    time.sleep(0.1)
+
+
 with mss.mss() as sct:
-    scope = {"top": 0, "left": 0, "width": 1400, "height": 1000}
-    mouse = Controller()
     state = "init"
+    mouse = Controller()
     questions = None
     answers = None
     possible_answers = []
@@ -114,168 +139,227 @@ with mss.mss() as sct:
 
     while "Screen capturing":
         aaa += 1
-        sct_img = sct.grab(scope)
+        sct_img = sct.grab(get_scope(state))
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
         print("current state: ", state)
 
-        id_topups = match(img, templates["topup"])
-        if len(id_topups) > 0:
-            lerp_iter(mouse, id_topups[0], 1)
-            time.sleep(0.5)
-            mouse.press(Button.left)
-            mouse.release(Button.left)
-            time.sleep(0.5)
-            continue
-
         if state == "init":
-            id_negos = match(img, templates["nego"])
-            if len(id_negos) > 0:
-                lerp_iter(mouse, id_negos[0], 1)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
+            # sct.shot(output=str(aaa) + "init.png")
+            # 1. clear state
+            questions = None
+            answers = None
+            possible_answers = []
+            qa = []
+
+            # 2.1 find nego button (batlle ground)
+            # id_negos = match(img, templates["nego"])
+            # if len(id_negos) > 0:
+            #     click_at(id_negos[0], state, mouse)
+            #     state = "prepare_question"
+            #     continue
+
+            # 2.2 find nego button (expidition)
+            id_nego2s = match(img, templates["nego2"])
+            if len(id_nego2s) > 0:
+                click_at(id_nego2s[0], state, mouse)
                 state = "prepare_question"
                 continue
 
+            # 3. buy attempt
+            id_attempts = match(img, templates["buy-attempt"])
+            if len(id_attempts) > 0:
+                click_at(id_attempts[0], state, mouse)
+                time.sleep(0.1)
+                state = "buy_attempt"
+                continue
+
+            # 4. next-chapter
+            id_nexts = match(img, templates["next-chapter"])
+            if len(id_nexts) > 0:
+                click_at(add_offset(id_nexts[0], 0, -15), state, mouse)
+                time.sleep(0.1)
+                continue
+
+            # 5. find get reward
+            id_rewards = match(img, templates["get-reward"])
+            if len(id_rewards) > 0:
+                click_at(add_offset(id_rewards[0], 0, -15), state, mouse)
+                continue
+
+            # 6. find arrow
+            id_arrows = match(img, templates["arrow"])
+            if len(id_arrows) > 0:
+                click_at(add_offset(id_arrows[0], 0, 100), state, mouse)
+                time.sleep(0.1)
+                continue
+
+        elif state == "buy_attempt":
+            id_medals = match(img, templates["medal"])
+            if len(id_medals) > 0:
+                click_at(id_medals[0], state, mouse)
+                time.sleep(1)
+                click_at((50, 550), state, mouse)
+                state = "init"
+                continue
+
         elif state == "prepare_question":
-            sct.shot(output=str(aaa) + "question.png")
+            # sct.shot(output=str(aaa) + "question.png")
             id_chooses = match(img, templates["choose"])
             if len(id_chooses) > 0:
-                lerp_iter(mouse, id_chooses[0], 1)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
+                click_at(id_chooses[0], state, mouse)
                 mouse.position = (50, 550)
                 questions = id_chooses
                 state = "prepare_answer"
                 continue
 
         elif state == "prepare_answer":
-            sct.shot(output=str(aaa) + "answer.png")
+            # sct.shot(output=str(aaa) + "answer.png")
             id_answers = match(img, templates["answer"])
             if len(id_answers) > 0:
                 answers = id_answers
                 for i in range(len(questions)):
                     possible_answers.append([i for i in range(len(id_answers))])
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
+                click_at(mouse.position, state, mouse)
                 state = "play"
                 continue
 
         elif state == "play":
-            questions.sort(key=lambda x: x[0])
-            answer_ids = [i for i in range(len(answers))]
-            random.shuffle(answer_ids)
-            print("shuffle answer", answer_ids)
-            ans = answer_ids * 5
-            print("selected answer", ans)
-            qa = []
+            # sct.shot(output=str(aaa) + "play.png")
+            if len(qa) == len(questions):
+                for i in range(len(qa)):
+                    if qa[i] is not None:
+                        click_at(questions[i], state, mouse)
+                        click_at(answers[qa[i]], state, mouse)
 
-            for i in range(len(questions)):
-                pos_answers = possible_answers[i]
-                print("pos answer", pos_answers)
-                if pos_answers == []:
-                    qa.append(None)
-                    continue
+            else:
+                questions.sort(key=lambda x: x[0])
+                answer_ids = [i for i in range(len(answers))]
+                random.shuffle(answer_ids)
+                print("shuffle answer", answer_ids)
+                ans = answer_ids * 5
+                print("selected answer", ans)
+                qa = []
 
-                # click question
-                lerp_iter(mouse, questions[i], 1)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
+                for i in range(len(questions)):
+                    pos_answers = possible_answers[i]
+                    print("pos answer", pos_answers)
+                    if pos_answers == []:
+                        qa.append(None)
+                        continue
 
-                choose_ans = ans[i]
-                choose_id = i
-                for j in range(choose_id, len(ans)):
-                    if ans[j] in pos_answers:
-                        choose_ans = ans[j]
-                        choose_id = j
-                        break
+                    # click question
+                    click_at(questions[i], state, mouse)
 
-                for j in range(choose_id, len(ans)):
-                    if ans[j] not in qa and ans[j] in pos_answers:
-                        choose_ans = ans[j]
-                        choose_id = j
-                        break
+                    choose_ans = ans[i]
+                    choose_id = i
+                    for j in range(choose_id, len(ans)):
+                        if ans[j] in pos_answers:
+                            choose_ans = ans[j]
+                            choose_id = j
+                            break
 
-                print("choose answer", choose_ans)
-                # click answer
-                lerp_iter(mouse, answers[choose_ans], 1)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
-                mouse.position = (50, 550)
-                qa.append(choose_ans)
+                    for j in range(choose_id, len(ans)):
+                        if ans[j] not in qa and ans[j] in pos_answers:
+                            choose_ans = ans[j]
+                            choose_id = j
+                            break
+
+                    print("choose answer", choose_ans)
+                    # click answer
+                    click_at(answers[choose_ans], state, mouse)
+                    mouse.position = (50, 550)
+                    qa.append(choose_ans)
+
             state = "send"
             continue
 
         elif state == "send":
             id_send = match(img, templates["send"])
             if len(id_send) > 0:
-                mouse.position = add_offset(id_send[0], 0, -50)
-                time.sleep(0.5)
-                mouse.press(Button.left)
-                mouse.release(Button.left)
-                time.sleep(0.5)
-                state = "pending_for_update"
+                click_at(add_offset(id_send[0], 0, -50), state, mouse)
+                state = "checking_and_update"
                 continue
 
-        elif state == "pending_for_update":
-            sct.shot(output=str(aaa) + "pending_update.png")
-            id_chooses = match(img, templates["choose"])
-            id_correct_signs = match(img, templates["correct-sign"])
-            if len(id_chooses) + len(id_correct_signs) >= 5:
-                state = "update_possible_answers"
-                continue
-
-        elif state == "update_possible_answers":
-            sct.shot(output=str(aaa) + "update.png")
-            id_corrects = [(*xy, "correct") for xy in match(img, templates["correct"])]
-            id_incorrects = [(*xy, "incorrect") for xy in match(img, templates["incorrect"])]
-            id_wrong_persons = [(*xy, "wrong-person") for xy in match(img, templates["wrong-person"])]
-            results = id_corrects + id_incorrects + id_wrong_persons
-            results.sort(key=lambda x: x[0])
-            if len(id_corrects) + len(id_incorrects) + len(id_wrong_persons) >= 5:
-                wrong_answer_ids = []
-                for i in range(len(results)):
-                    (x, y, status) = results[i]
-                    if status == "correct":
-                        print("correct")
-                        possible_answers[i] = []
-                    elif status == "incorrect":
-                        print("incorrect")
-                        answered_id = qa[i]
-                        for possible_answer in possible_answers:
-                            if answered_id in possible_answer:
-                                possible_answer.remove(answered_id)
-                    else:
-                        print("wrong person")
-                        answered_id = qa[i]
-                        wrong_answer_ids.append(answered_id)
-                        if answered_id in possible_answers[i]:
-                            possible_answers[i].remove(answered_id)
-                    print(i, "possible answer", possible_answers)
-                print("qa", qa)
-                print("wrong_answer_ids", wrong_answer_ids)
-                print("possible answer", possible_answers)
-
-                remaining_count = len(possible_answers) - possible_answers.count([])
-                if remaining_count == len(wrong_answer_ids):
-                    for possible_answer in possible_answers:
-                        temp = []
-                        for a in possible_answer:
-                            if a in wrong_answer_ids:
-                                temp.append(a)
-                        print("temp", temp)
-                        possible_answer = temp
-                print("possible answer2", possible_answers)
+            # cancel case
+            id_cancels = match(img, templates["cancel"])
+            if len(id_cancels) > 0:
+                click_at(add_offset(id_cancels[0], 0, -15), state, mouse)
+                time.sleep(1)
+                click_at(add_offset(id_cancels[0], 40, -25), state, mouse)
                 state = "play"
                 continue
-            else:
-                time.sleep(0.5)
+
+            # can't play, then replay
+            id_check_incompleted = match(img, templates["check-incompleted"])
+            id_chooses = match(img, templates["choose"])
+            if len(id_chooses) > 0 or len(id_check_incompleted):
+                state = "play"
+                continue
+
+        elif state == "checking_and_update":
+            # sct.shot(output=str(aaa) + "pending_update.png")
+            #  Out of round, then top up
+            id_topups = match(img, templates["topup"])
+            if len(id_topups) > 0:
+                click_at(id_topups[0], state, mouse)
+                continue
+
+            # case1: if correct sign + choose sign >= 5, then update the possible answer
+            id_chooses = match(img, templates["choose"])
+            id_correct_signs = match(img, templates["correct-sign"])
+            if (len(id_chooses) + len(id_correct_signs) >= 5) and len(id_correct_signs) < 5:
+                # update state
+                id_corrects = [(*xy, "correct") for xy in match(img, templates["correct"])]
+                id_incorrects = [(*xy, "incorrect") for xy in match(img, templates["incorrect"])]
+                id_wrong_persons = [(*xy, "wrong-person") for xy in match(img, templates["wrong-person"])]
+                results = id_corrects + id_incorrects + id_wrong_persons
+                results.sort(key=lambda x: x[0])
+                if len(id_corrects) + len(id_incorrects) + len(id_wrong_persons) >= 5:
+                    wrong_answer_ids = []
+                    for i in range(len(results)):
+                        (x, y, status) = results[i]
+                        if status == "correct":
+                            print("correct")
+                            possible_answers[i] = []
+                        elif status == "incorrect":
+                            print("incorrect")
+                            answered_id = qa[i]
+                            for possible_answer in possible_answers:
+                                if answered_id in possible_answer:
+                                    possible_answer.remove(answered_id)
+                        else:
+                            print("wrong person")
+                            answered_id = qa[i]
+                            wrong_answer_ids.append(answered_id)
+                            if answered_id in possible_answers[i]:
+                                possible_answers[i].remove(answered_id)
+                        print(i, "possible answer", possible_answers)
+                    print("qa", qa)
+                    print("wrong_answer_ids", wrong_answer_ids)
+                    print("possible answer", possible_answers)
+
+                    remaining_count = len(possible_answers) - possible_answers.count([])
+                    if remaining_count == len(set(wrong_answer_ids)):
+                        for i in range(len(possible_answers)):
+                            temp = []
+                            for a in possible_answers[i]:
+                                if a in wrong_answer_ids:
+                                    temp.append(a)
+                            print("temp", temp)
+                            possible_answers[i] = temp
+                    print("possible answer2", possible_answers)
+                    qa = []
+                    state = "play"
+                    continue
+                else:
+                    print("can't update")
+
+            # case2: if correct sign >= 5 or found success, it means the stage is completed.
+            id_success = match(img, templates["success"])
+            if len(id_correct_signs) >= 5 or len(id_success) > 0:
+                time.sleep(1)
+                click_at((50, 550), state, mouse)
+                time.sleep(1)
+                click_at((50, 550), state, mouse)
+                state = "init"
+                continue
