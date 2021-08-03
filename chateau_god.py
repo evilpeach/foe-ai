@@ -83,8 +83,10 @@ def match(img, template, threshold=0.9):
 with mss.mss() as sct:
     scope = {"top": 140, "left": 0, "width": 800, "height": 800}
     mouse = Controller()
+    count = 0
 
     while "Screen capturing":
+        print("Count: ", count)
         sct_img = sct.grab(scope)
         img = np.ascontiguousarray(np.array(sct_img)[:, :, 0:3])
 
@@ -105,6 +107,7 @@ with mss.mss() as sct:
             lerp_iter(mouse, add_offset(collects[0], 0, 120), 10)
             mouse.press(Button.left)
             mouse.release(Button.left)
+            count = count+1
             time.sleep(0.5)
 
         elif len(cancels) > 0:

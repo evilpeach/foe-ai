@@ -113,9 +113,7 @@ def match(img, template, threshold=0.9):
     w, h = template.shape[:-1]
     res = cv2.matchTemplate(img, template, cv2.TM_CCOEFF_NORMED)
     loc = np.where(res >= threshold)
-    return reduce_point(
-        [(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])]
-    )
+    return reduce_point([(pt[0] / 2.0 + w / 4.0, pt[1] / 2.0 + h / 4.0) for pt in zip(*loc[::-1])])
 
 
 def get_password(username):
@@ -128,9 +126,7 @@ def open_browser():
     # os.system(
     #     '''open -na "Google Chrome" --args --incognito "https://th.forgeofempires.com/page"'''
     # )
-    os.system(
-        '''open -a Firefox --args -private-window "https://th.forgeofempires.com/page"'''
-    )
+    os.system('''open -a Firefox --args -private-window "https://th.forgeofempires.com/page"''')
 
 
 def read_file():
@@ -378,4 +374,3 @@ with mss.mss() as sct:
             time.sleep(2)
             state = "init"
             continue
-
