@@ -5,6 +5,7 @@ import mss
 import numpy
 import random
 from pynput.mouse import Button, Controller
+import keyboard
 
 templates = {
     # "arrow": cv2.imread("nego/arrow.png"),
@@ -26,6 +27,7 @@ templates = {
     "medal": cv2.imread("nego/medal.png"),
     "next-chapter": cv2.imread("nego/next-chapter.png"),
     "cancel": cv2.imread("nego/cancel.png"),
+    "show-answer": cv2.imread("nego/show-answer.png"),
 }
 
 
@@ -111,10 +113,10 @@ def match(img, template, threshold=0.9):
 
 
 def get_scope(state):
-    if state == "init":
-        return {"top": 0, "left": 0, "width": 1700, "height": 1000}
-    else:
-        return {"top": 360, "left": 480, "width": 1330 - 480, "height": 930 - 360}
+    # if state == "init":
+    #     return {"top": 0, "left": 0, "width": 1700, "height": 1000}
+    # else:
+    return {"top": 360, "left": 480, "width": 1330 - 480, "height": 930 - 360}
 
 
 def click_at(pos, state, mouse):
@@ -122,9 +124,22 @@ def click_at(pos, state, mouse):
     lerp_iter(mouse, add_offset(pos, offset["left"], offset["top"]), 1)
     time.sleep(0.1)
     mouse.press(Button.left)
-    time.sleep(0.1)
+    time.sleep(0.2)
     mouse.release(Button.left)
     time.sleep(0.1)
+
+
+def write_by_num(num):
+    keyboard.write(str(num))
+
+
+def exit_and_start(pos, mouse):
+    time.sleep(0.5)
+    for _ in range(10):
+        keyboard.press_and_release("esc")
+        time.sleep(0.2)
+
+    click_at(pos, "init", mouse)
 
 
 with mss.mss() as sct:
@@ -134,6 +149,7 @@ with mss.mss() as sct:
     answers = None
     possible_answers = []
     qa = []
+    start_pos = (400 - 480, 460 - 360)  # minus offset
 
     # debug
     aaa = 0
@@ -143,6 +159,10 @@ with mss.mss() as sct:
         sct_img = sct.grab(get_scope(state))
         img = np.ascontiguousarray(numpy.array(sct_img)[:, :, 0:3])
         print("current state: ", state)
+
+        test_nego = match(img, templates["nego"])
+        if len(test_nego) > 0 and state != "init":
+            state = "init"
 
         if state == "init":
             # sct.shot(output=str(aaa) + "init.png")
@@ -156,6 +176,7 @@ with mss.mss() as sct:
             id_negos = match(img, templates["nego"])
             if len(id_negos) > 0:
                 click_at(id_negos[0], state, mouse)
+                mouse.position = (50, 400)
                 state = "prepare_question"
                 continue
 
@@ -163,15 +184,16 @@ with mss.mss() as sct:
             id_rewards = match(img, templates["get-reward"])
             if len(id_rewards) > 0:
                 click_at(add_offset(id_rewards[0], 0, -15), state, mouse)
+                mouse.position = (50, 400)
                 continue
 
         elif state == "prepare_question":
             # sct.shot(output=str(aaa) + "question.png")
             id_chooses = match(img, templates["choose"])
             if len(id_chooses) > 0:
-                click_at(id_chooses[0], state, mouse)
-                mouse.position = (50, 550)
-                questions = id_chooses
+                # click_at(id_chooses[0], state, mouse)
+                write_by_num(1)
+                questions = [i for i in range(len(id_chooses))]
                 state = "prepare_answer"
                 continue
 
@@ -179,10 +201,12 @@ with mss.mss() as sct:
             # sct.shot(output=str(aaa) + "answer.png")
             id_answers = match(img, templates["answer"])
             if len(id_answers) > 0:
-                answers = id_answers
+                answers = [i for i in range(len(id_answers))]
                 for i in range(len(questions)):
                     possible_answers.append([i for i in range(len(id_answers))])
-                click_at(mouse.position, state, mouse)
+                # click_at(mouse.position, state, mouse)
+                keyboard.press_and_release("esc")
+                time.sleep(0.5)
                 state = "play"
                 continue
 
@@ -191,11 +215,15 @@ with mss.mss() as sct:
             if len(qa) == len(questions):
                 for i in range(len(qa)):
                     if qa[i] is not None:
-                        click_at(questions[i], state, mouse)
-                        click_at(answers[qa[i]], state, mouse)
+                        # click_at(questions[i], state, mouse)
+                        # click_at(answers[qa[i]], state, mouse)
+                        write_by_num(questions[i] + 1)
+                        time.sleep(0.2)
+                        write_by_num(answers[qa[i]] + 1)
+                        time.sleep(0.2)
 
             else:
-                questions.sort(key=lambda x: x[0])
+                questions.sort()
                 answer_ids = [i for i in range(len(answers))]
                 random.shuffle(answer_ids)
                 print("shuffle answer", answer_ids)
@@ -211,7 +239,10 @@ with mss.mss() as sct:
                         continue
 
                     # click question
-                    click_at(questions[i], state, mouse)
+                    # click_at(questions[i], state, mouse)
+                    print("write q", questions[i] + 1)
+                    write_by_num(questions[i] + 1)
+                    time.sleep(0.2)
 
                     choose_ans = ans[i]
                     choose_id = i
@@ -229,9 +260,11 @@ with mss.mss() as sct:
 
                     print("choose answer", choose_ans)
                     # click answer
-                    click_at(answers[choose_ans], state, mouse)
-                    mouse.position = (50, 550)
+                    # click_at(answers[choose_ans], state, mouse)
+                    print("write a", answers[choose_ans] + 1)
+                    write_by_num(answers[choose_ans] + 1)
                     qa.append(choose_ans)
+                    time.sleep(0.2)
 
             state = "send"
             continue
@@ -240,38 +273,48 @@ with mss.mss() as sct:
             id_send = match(img, templates["send"])
             if len(id_send) > 0:
                 print("found send")
-                click_at(add_offset(id_send[0], 0, -50), state, mouse)
+                # click_at(add_offset(id_send[0], 0, -50), state, mouse)
+                keyboard.press_and_release("space")
                 state = "checking_and_update"
-                continue
-
-            # cancel case
-            id_cancels = match(img, templates["cancel"])
-            if len(id_cancels) > 0:
-                print("found cancel")
-                click_at(add_offset(id_cancels[0], 0, -15), state, mouse)
-                time.sleep(1)
-                click_at(add_offset(id_cancels[0], 40, -25), state, mouse)
-                state = "play"
                 continue
 
             id_topups = match(img, templates["topup"])
             if len(id_topups) > 0:
                 print("found topup")
                 click_at(add_offset(id_topups[0], 0, -15), state, mouse)
-                time.sleep(1)
+                time.sleep(0.5)
+                mouse.position = (50, 400)
                 state = "play"
                 continue
+
+            # cancel case
+            # id_cancels = match(img, templates["cancel"])
+            # if len(id_cancels) > 0:
+            #     print("found cancel")
+            #     click_at(add_offset(id_cancels[0], 0, -15), state, mouse)
+            #     time.sleep(1)
+            #     click_at(add_offset(id_cancels[0], 40, -25), state, mouse)
+            #     state = "play"
+            #     continue
 
             # can't play, then replay
             id_check_incompleted = match(img, templates["check-incompleted"])
             id_chooses = match(img, templates["choose"])
             if len(id_chooses) > 0 or len(id_check_incompleted):
                 print("found incompleted")
+                time.sleep(0.2)
                 state = "play"
                 continue
 
         elif state == "checking_and_update":
             # sct.shot(output=str(aaa) + "pending_update.png")
+
+            # The answer still has showed because it clicked too fast.
+            id_show_answers = match(img, templates["show-answer"])
+            if len(id_show_answers) > 0:
+                state = "play"
+                continue
+
             #  Out of round, then top up
             id_topups = match(img, templates["topup"])
             if len(id_topups) > 0:
@@ -331,7 +374,7 @@ with mss.mss() as sct:
             # case2: if correct sign >= 5 or found success, it means the stage is completed.
             id_success = match(img, templates["success"])
             if len(id_correct_signs) >= 5 or len(id_success) > 0:
-                time.sleep(1)
-                click_at((50, 550), state, mouse)
+                time.sleep(0.5)
+                exit_and_start(start_pos, mouse)
                 state = "init"
                 continue
