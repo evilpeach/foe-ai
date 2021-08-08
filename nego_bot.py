@@ -5,6 +5,7 @@ import mss
 import numpy
 import random
 from pynput.mouse import Button, Controller
+import keyboard
 
 templates = {
     "arrow": cv2.imread("nego/arrow.png"),
@@ -25,6 +26,7 @@ templates = {
     "medal": cv2.imread("nego/medal.png"),
     "next-chapter": cv2.imread("nego/next-chapter.png"),
     "cancel": cv2.imread("nego/cancel.png"),
+    "show-answer": cv2.imread("nego/show-answer.png"),
 }
 
 
@@ -126,6 +128,17 @@ def click_at(pos, state, mouse):
     time.sleep(0.1)
 
 
+def write_by_num(num):
+    keyboard.write(str(num))
+
+
+def exit_and_start():
+    time.sleep(0.5)
+    for _ in range(10):
+        keyboard.press_and_release("esc")
+        time.sleep(0.2)
+
+
 with mss.mss() as sct:
     state = "init"
     mouse = Controller()
@@ -150,13 +163,6 @@ with mss.mss() as sct:
             answers = None
             possible_answers = []
             qa = []
-
-            # 2.1 find nego button (batlle ground)
-            # id_negos = match(img, templates["nego"])
-            # if len(id_negos) > 0:
-            #     click_at(id_negos[0], state, mouse)
-            #     state = "prepare_question"
-            #     continue
 
             # 2.2 find nego button (expidition)
             id_nego2s = match(img, templates["nego2"])
@@ -206,9 +212,10 @@ with mss.mss() as sct:
             # sct.shot(output=str(aaa) + "question.png")
             id_chooses = match(img, templates["choose"])
             if len(id_chooses) > 0:
-                click_at(id_chooses[0], state, mouse)
+                # click_at(id_chooses[0], state, mouse)
+                write_by_num(1)
                 mouse.position = (50, 550)
-                questions = id_chooses
+                questions = [i for i in range(len(id_chooses))]
                 state = "prepare_answer"
                 continue
 
@@ -216,10 +223,12 @@ with mss.mss() as sct:
             # sct.shot(output=str(aaa) + "answer.png")
             id_answers = match(img, templates["answer"])
             if len(id_answers) > 0:
-                answers = id_answers
+                answers = [i for i in range(len(id_answers))]
                 for i in range(len(questions)):
                     possible_answers.append([i for i in range(len(id_answers))])
-                click_at(mouse.position, state, mouse)
+                # click_at(mouse.position, state, mouse)
+                keyboard.press_and_release("esc")
+                time.sleep(0.5)
                 state = "play"
                 continue
 
@@ -228,11 +237,15 @@ with mss.mss() as sct:
             if len(qa) == len(questions):
                 for i in range(len(qa)):
                     if qa[i] is not None:
-                        click_at(questions[i], state, mouse)
-                        click_at(answers[qa[i]], state, mouse)
+                        # click_at(questions[i], state, mouse)
+                        # click_at(answers[qa[i]], state, mouse)
+                        write_by_num(questions[i] + 1)
+                        time.sleep(0.2)
+                        write_by_num(answers[qa[i]] + 1)
+                        time.sleep(0.2)
 
             else:
-                questions.sort(key=lambda x: x[0])
+                questions.sort()
                 answer_ids = [i for i in range(len(answers))]
                 random.shuffle(answer_ids)
                 print("shuffle answer", answer_ids)
@@ -248,7 +261,10 @@ with mss.mss() as sct:
                         continue
 
                     # click question
-                    click_at(questions[i], state, mouse)
+                    # click_at(questions[i], state, mouse)
+                    print("write q", questions[i] + 1)
+                    write_by_num(questions[i] + 1)
+                    time.sleep(0.2)
 
                     choose_ans = ans[i]
                     choose_id = i
@@ -266,18 +282,27 @@ with mss.mss() as sct:
 
                     print("choose answer", choose_ans)
                     # click answer
-                    click_at(answers[choose_ans], state, mouse)
-                    mouse.position = (50, 550)
+                    # click_at(answers[choose_ans], state, mouse)
+                    print("write a", answers[choose_ans] + 1)
+                    write_by_num(answers[choose_ans] + 1)
                     qa.append(choose_ans)
+                    time.sleep(0.2)
 
             state = "send"
             continue
 
         elif state == "send":
             id_send = match(img, templates["send"])
+            time.sleep(1)
             if len(id_send) > 0:
-                click_at(add_offset(id_send[0], 0, -50), state, mouse)
+                # click_at(add_offset(id_send[0], 0, -50), state, mouse)
+                keyboard.press_and_release("space")
                 state = "checking_and_update"
+                continue
+
+            id_topups = match(img, templates["topup"])
+            if len(id_topups) > 0:
+                click_at(id_topups[0], state, mouse)
                 continue
 
             # cancel case
@@ -298,6 +323,13 @@ with mss.mss() as sct:
 
         elif state == "checking_and_update":
             # sct.shot(output=str(aaa) + "pending_update.png")
+            # The answer still has showed because it clicked too fast.
+            id_show_answers = match(img, templates["show-answer"])
+            if len(id_show_answers) > 0:
+                print("found show answer")
+                state = "play"
+                continue
+
             #  Out of round, then top up
             id_topups = match(img, templates["topup"])
             if len(id_topups) > 0:
@@ -357,9 +389,7 @@ with mss.mss() as sct:
             # case2: if correct sign >= 5 or found success, it means the stage is completed.
             id_success = match(img, templates["success"])
             if len(id_correct_signs) >= 5 or len(id_success) > 0:
-                time.sleep(1)
-                click_at((50, 550), state, mouse)
-                time.sleep(1)
-                click_at((50, 550), state, mouse)
+                time.sleep(0.5)
+                exit_and_start()
                 state = "init"
                 continue

@@ -312,6 +312,7 @@ with mss.mss() as sct:
             # The answer still has showed because it clicked too fast.
             id_show_answers = match(img, templates["show-answer"])
             if len(id_show_answers) > 0:
+                print("found show answer")
                 state = "play"
                 continue
 
