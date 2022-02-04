@@ -149,7 +149,8 @@ with mss.mss() as sct:
     answers = None
     possible_answers = []
     qa = []
-    start_pos = (400 - 480, 460 - 360)  # minus offset
+    ref_pos = (1000, 623)
+    start_pos = (ref_pos[0] - 480, ref_pos[1] - 360)  # minus offset
 
     # debug
     aaa = 0
@@ -296,6 +297,13 @@ with mss.mss() as sct:
             #     click_at(add_offset(id_cancels[0], 40, -25), state, mouse)
             #     state = "play"
             #     continue
+
+            # The answer still has showed because it clicked too fast.
+            id_show_answers = match(img, templates["show-answer"])
+            if len(id_show_answers) > 0:
+                print("found show answer")
+                state = "play"
+                continue
 
             # can't play, then replay
             id_check_incompleted = match(img, templates["check-incompleted"])
